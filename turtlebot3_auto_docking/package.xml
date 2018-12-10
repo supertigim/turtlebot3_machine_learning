@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>turtlebot3_auto_docking</name>
+  <version>1.0.0</version>
+  <description>
+    The turtlebot3 auto docking module package includes alorithms and instruction.
+  </description>
+  <license>Apache 2.0</license>
+  <author email="jyoon95@gmail.com">JayK</author>
+  <maintainer email="jyoon95@gmail.com">JayK</maintainer>
+  <url type="website">http://wiki.ros.org/turtlebot3_machine_learning</url>
+  <url type="emanual">http://turtlebot3.robotis.com</url>
+  <url type="repository">https://github.com/supertigim/turtlebot3_machine_learning/tree/master/turtlebot3_auto_docking</url>
+  <url type="bugtracker">https://github.com/supertigim/turtlebot3_machine_learning/tree/master/turtlebot3_auto_docking/issues</url>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+</package>

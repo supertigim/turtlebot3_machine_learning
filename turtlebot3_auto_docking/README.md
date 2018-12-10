@@ -11,10 +11,10 @@ Idea behind this task is that 3 three steps are required to do.
 
 ## Prerequisites   
 
-    - [ROS kinectic on ubunt 16.04](http://emanual.robotis.com/docs/en/platform/turtlebot3/pc_setup/#pc-setup)  
-    - [Turtlebot3 Dependant ROS Packages](http://emanual.robotis.com/docs/en/platform/turtlebot3/pc_setup/#pc-setup)  
-    - [Turtlebot3 Simulation ROS Package](http://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/#simulation)   
-    - OpenAI baselines for reinforcement learning
+1.[ROS kinectic on ubunt 16.04](http://emanual.robotis.com/docs/en/platform/turtlebot3/pc_setup/#pc-setup)  
+2.[Turtlebot3 Dependant ROS Packages](http://emanual.robotis.com/docs/en/platform/turtlebot3/pc_setup/#pc-setup)  
+3.[Turtlebot3 Simulation ROS Package](http://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/#simulation)  
+4.OpenAI baselines for reinforcement learning  
 
 ## Dataset Preparation for pose prediction    
   
