@@ -14,7 +14,7 @@ import sys, select, termios, tty
 
 import time
 
-from handle_station import DockingStation
+from station_handler import DockingStation
 
 # Turtlebot3 Maximum Speeds
 MAX_LIN_VEL = 0.6
@@ -86,7 +86,7 @@ class AutoDockingDatasetGeneration(object):
 			self.labels.append(label)
 			self.images.append(image)
 
-		time.sleep(0.01)	
+		time.sleep(0.05)	
 
 
 	def _collision_situation(self):
@@ -115,7 +115,7 @@ class AutoDockingDatasetGeneration(object):
 
 		ang = np.clip(ang, -1.0, 1.0)
 		vel_cmd.angular.z = ang*MAX_ANG_VEL
-		if boost_ang: vel_cmd.angular.z *= 4.5
+		if boost_ang: vel_cmd.angular.z *= 5.5
 
 		lin = np.clip(lin, -1.0, 1.0)
 		vel_cmd.linear.x = lin*MAX_LIN_VEL
@@ -168,6 +168,7 @@ class AutoDockingDatasetGeneration(object):
 
 		self.no_image_taken = True
 
+		cnt = 0
 		for image, label in zip(images,labels):
 
 			label = np.round(label,1)
@@ -188,10 +189,11 @@ class AutoDockingDatasetGeneration(object):
 						os.remove(folder_path+'/'+ image_name)
 				#continue
 
-			file_name = "/" + str(time.time()) + ".jpg"
+			file_name = "/" + str(time.time()) + "."+ str(cnt) + ".jpg"
 
 			cv2.imwrite(folder_path+file_name, image)
 			print('saved', file_name)
+			cnt += 1
 
 		self.no_image_taken = False
 
