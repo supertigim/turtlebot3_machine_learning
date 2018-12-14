@@ -30,7 +30,7 @@ MAX_SPEED_RATIO = 0.3	# MAX_LIN_VEL * MAX_SPEED_RATIO
 MAX_CAM_ANGLE = 0.3		# mamximum angle which the bot can see the station 
 MAX_SAMPLING_IMAGE_NUM = 20 # maximum number of sampling images each (position, angle)
 
-class AutoDockingDatasetGeneration(object):
+class AutoDockingDataGathering(object):
 	''' Generate dataset for autodocking training'''
 
 	def __init__(self):
@@ -49,6 +49,7 @@ class AutoDockingDatasetGeneration(object):
 
 		self.path = self._save_path()
 		self.no_image_taken = False
+		self.label_count = 0
 		
 
 	def __to_cv_image__(self, msg_img, img_show=True):
@@ -56,12 +57,11 @@ class AutoDockingDatasetGeneration(object):
 			Convert ROS image to opencv image
 		'''
 		img = self.cvBridge.imgmsg_to_cv2(msg_img, "bgr8")
-		img = cv2.resize(img, (100, 100))
-
 		if img_show:
 			cv2.imshow('turtlebot3 buger',img)
 			cv2.waitKey(10)
 
+		img = cv2.resize(img, (100, 100))
 		return img
 
 
@@ -80,13 +80,16 @@ class AutoDockingDatasetGeneration(object):
 				return	
 
 		label = self.station.relative_robot_pos()
+		#for v in label:
+		#	if abs(v - round(v,100))*100
+
 		if label[1] >= MIN_DISTANCE: 				# y-axis needs to be bigger than MIN_DISTANCE
 			image = self.__to_cv_image__(msg_img)
 
 			self.labels.append(label)
 			self.images.append(image)
 
-		time.sleep(0.05)	
+		time.sleep(0.01)	
 
 
 	def _collision_situation(self):
@@ -171,13 +174,18 @@ class AutoDockingDatasetGeneration(object):
 		cnt = 0
 		for image, label in zip(images,labels):
 
+			if abs(label[0] - round(label[0],1)) > 0.05: continue
+			if abs(label[1] - round(label[1],1)) > 0.05: continue
+			if abs(label[2] - round(label[2],1)) > 0.01: continue
+
 			label = np.round(label,1)
 			if label[2] == 0: label[2] = 0.0	# to remove -0.0
 
 			folder_path = self.path + str(label[1]) + "_" + str(label[0]) + "_" + str(label[2])
 			if not os.path.exists(folder_path):
 				os.makedirs(folder_path)
-				print("Successfully created save folder: ", folder_path)
+				self.label_count += 1
+				print(self.label_count, " Successfully created save folder: ", folder_path)
 
 			file_list = os.listdir(folder_path)
 
@@ -192,7 +200,7 @@ class AutoDockingDatasetGeneration(object):
 			file_name = "/" + str(time.time()) + "."+ str(cnt) + ".jpg"
 
 			cv2.imwrite(folder_path+file_name, image)
-			print('saved', file_name)
+			#print('saved', file_name)
 			cnt += 1
 
 		self.no_image_taken = False
@@ -218,7 +226,7 @@ class AutoDockingDatasetGeneration(object):
 				self.__send_robot_speed__(0.0,0.0)
 				return False
 		except:
-			pass #print e
+			print('Communications Failed')
 		finally:
 			self.__send_robot_speed__(0.0,0.0)
 
@@ -249,6 +257,6 @@ class AutoDockingDatasetGeneration(object):
 
 
 if __name__=="__main__":
-	AutoDockingDatasetGeneration().run()
+	AutoDockingDataGathering().run()
 
 # end of file

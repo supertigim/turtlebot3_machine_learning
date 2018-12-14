@@ -16,6 +16,24 @@ Idea behind this task is that 3 three steps are required to do.
 3.[Turtlebot3 Simulation ROS Package](http://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/#simulation)  
 4.OpenAI baselines for reinforcement learning  
 
+**Anaconda environment**  
+    $ conda create -n ros python=2
+    $ source activate ros
+    $(ros) pip install rosinstall msgpack empy defusedxml netifaces, tensorflow, keras, pillow  
+
+**Gazebo Simulation** 
+
+    $ source activate ros
+    $(ros) export TURTLEBOT3_MODEL=burger       # only supported!!!
+    $(ros) roslaunch turtlebot3_gazebo turtlebot3_docking_station.launch    # Gazebo simulation 
+
+**Turtlebot3 controller**  
+
+    $ source activate ros
+    $(ros) export TURTLEBOT3_MODEL=burger  
+    $(ros) roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch  
+
+
 ## 3.Dataset Preparation for pose prediction    
 
 Posistion predictor model needs to be trained by dataset which is pairs of an image and its position label.
@@ -25,19 +43,19 @@ First open two terminals,
 
 ### > First terminal  
     # in case of using anaconda  
-    source activate ros             # python2.7, pip install rosinstall msgpack empy defusedxml netifaces  
+    $ source activate ros             # python2.7, pip install rosinstall msgpack empy defusedxml netifaces  
 
     # Create a gazebo environment
-    export TURTLEBOT3_MODEL=burger 
-    roslaunch turtlebot3_gazebo turtlebot3_docking_station.launch
+    $(ros) export TURTLEBOT3_MODEL=burger 
+    $(ros) roslaunch turtlebot3_gazebo turtlebot3_docking_station.launch
 
-#### > Sencond terminal  
+### > Sencond terminal  
     # in case of using anaconda  
-    source activate ros             # python2.7, pip install rosinstall msgpack empy defusedxml netifaces  
+    $ source activate ros             # python2.7, pip install rosinstall msgpack empy defusedxml netifaces  
 
     # Capture an image while moving the bot randomly 
     cd /home/your_id/catkin_ws/src/turtlebot3_machine_learning/turtlebot3_auto_docking/src  
-    python generate_dataset.py  
+    $(ros) python generate_dataset.py  
 
 ### > Environment Change 
 
@@ -53,9 +71,24 @@ Here are two ways you can do.
 
 ### > Triaining and Test dataset separation  
 
-There are two dataset required in order to train neural networks properly. Training dataset is just for training as guessed by its name, meanwhile test dataset is to evaluate the model to check if it is trained well.  
+There are two dataset required in order to train neural networks properly. Training dataset is just for training as guessed by its name, meanwhile test dataset is to evaluate the model to check if it is trained well. All dataset are placed in /data/train and /data/validation respectively.    
 
-    python pos_predictor_training.py
+    $(ros) python dataset_preparation.py
+
+And then, the model is ready to train.   
+
+    $(ros) python pos_predictor_training.py
+
+
+### > Evaluation  
+
+Training takes a little long time although it totally relies on hardware. After training, there are two files generated in /pos_predicition_model, one for labels called '**autodock_pos_labels.npy**', another one for position prediction named '**simple_nn_weights_XXX.h5**' where XXX is epochs. With current hyper parameters, the validation loss is almost 0.59 and validation accuracy is around 0.9 which shows almost 100% acurrate in choosing the right one out of 1553 classes.   
+
+Please make sure that the gazebo simulation is still run. In addition to it, turtlebo3_teleop is needed to move robot.  
+
+    # press 'n' if you want to change the position of docking station
+    $(ros) python model_eval.py     
+
 
 ## 5.Move to (0.0 , 1.0)  
   
@@ -63,16 +96,14 @@ Once the position predictor model is trained well, the bot can estimate where it
 
 This is a simple quest to solve only with legacy approach, because the bot already knows its position and heading.  
 
-    python execute_auto_dock_approach.py --step "step2"  
+    $(ros) python execute_auto_dock_approach.py --step "step2"  
 
 
 ## 6.Reinforcement Learning based Motion Control  
 
 Although the robot is able to somehow predict where it is, the position is estimated value, not correct one. Therefore, reinforcement learning has been introduced so as to guide it to the docking very accurately from (0.0, 1.0).  
 
-    python rl_motion_control.py --mode "train"
-
-
+    $(ros) python rl_motion_control.py --mode "train"
 
 
 

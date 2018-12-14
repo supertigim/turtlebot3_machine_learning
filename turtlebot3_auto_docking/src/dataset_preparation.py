@@ -8,21 +8,26 @@ import numpy as np
 # Configurations 
 ############################################
 
-TRAIN_DATA_PATH         = './data/train'
-VAL_DATA_PATH           = './data/validation'
+__PATH__                = os.path.dirname(os.path.realpath(__file__))
+__PATH__                = __PATH__.replace('turtlebot3_machine_learning/turtlebot3_auto_docking/src',
+                                            'turtlebot3_machine_learning/turtlebot3_auto_docking')
+
+TRAIN_DATA_PATH         = __PATH__ + '/data/train'
+VAL_DATA_PATH           = __PATH__ + '/data/validation'
 
 
-SOURCE_PATH             = './dataset'
+SOURCE_PATH             = __PATH__ + '/dataset'
 
 
 SPLIT_RATIO             = 0.1           # 0.9 : Training | 0.1 : Testing 
 
 
-# These valuse come after excuting the below function 
-N_TRAIN_SAMPLES         = None
-N_VAL_SAMPLES           = None
 
-CLASSES                 = None
+# These valuse come after excuting the below function 
+N_TRAIN_SAMPLES         = 48050
+N_VAL_SAMPLES           = 5566
+
+CLASSES                 = 1553
 
 ############################################
 # Functions 
@@ -85,7 +90,6 @@ def split_dataset_into_train_and_validation_samples(all_data_dir, training_data_
                 shutil.copy(input_file, training_data_dir + '/' + category_name + '/' + file)
                 num_training_files += 1
 
-        # what if there is no testing data
         if not len(os.listdir(testing_data_category_dir)):
             input_file = os.path.join(subdir, files[-1])
             shutil.copy(input_file, testing_data_dir + '/' + category_name + '/' + files[-1])
@@ -102,6 +106,7 @@ def main():
     '''
         Main Function 
     '''
+    SPLIT_RATIO = 0.1
     split_dataset_into_train_and_validation_samples(SOURCE_PATH, TRAIN_DATA_PATH, VAL_DATA_PATH, SPLIT_RATIO)
 
 

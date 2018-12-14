@@ -14,8 +14,6 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, Learnin
 from keras.utils.vis_utils import plot_model
 from keras import backend as K
 
-import pickle
-
 import tensorflow as tf
 from dataset_preparation import TRAIN_DATA_PATH, VAL_DATA_PATH, N_TRAIN_SAMPLES, N_VAL_SAMPLES, CLASSES
 
@@ -24,23 +22,15 @@ from dataset_preparation import TRAIN_DATA_PATH, VAL_DATA_PATH, N_TRAIN_SAMPLES,
 ############################################
 
 # path to the model weights files.
-SAVE_FOLDER             = './save_model'
-BASE_MODEL_W_PATH       = SAVE_FOLDER + '/nasnet_weights_'
-TOP_MODEL_W_PATH        = SAVE_FOLDER + '/top_layer_'
+__PATH__                = os.path.dirname(os.path.realpath(__file__))
+__PATH__                = __PATH__.replace('turtlebot3_machine_learning/turtlebot3_auto_docking/src',
+                                            'turtlebot3_machine_learning/turtlebot3_auto_docking')
 
-FLOWER_RESNET50_W_PATH  = SAVE_FOLDER + '/flower_resnet50_'
-VGG_FACE_MODEL_W_PATH   = SAVE_FOLDER + '/vggface_weights_'
+SAVE_FOLDER             = __PATH__ + '/pos_prediction_model'
 
-
-XCEPTION_MODEL_W_PATH   = SAVE_FOLDER + '/xception_weights_'
-
-
-#BASE_MODEL_W_PATH       = VGG_FACE_MODEL_W_PATH
-BASE_MODEL_W_PATH       = XCEPTION_MODEL_W_PATH
+#LOG_DIR                 = './log'
 
 SAVE_PERIOD             = 10
-
-LOG_DIR                 = './log'
 
 # dimensions of our images.
 IMG_WIDTH, IMG_HEIGHT   = 100, 100
@@ -52,7 +42,7 @@ VAL_BATCH_SIZE          = BATCH_SIZE//2
 TRANSFERED_MODEL_UPDATE = True
 
 LOAD_EPOCH              = 0 # must be less than epochs
-N_GPU                   = 2 # Number of GPU
+N_GPU                   = 1 # Number of GPU
 
 TOP_HIDDEN_L            = 1024
 
@@ -60,7 +50,7 @@ SAVE_MODEL_GRAPH        = False
 
 WORK_THREAD             = 16
 
-POS_LABEL_PICKLE        = 'autodock_pos_labels.pickle'
+POS_LABEL_FILE          = '/autodock_pos_labels'
 
 
 ############################################
@@ -112,13 +102,15 @@ def lr_schedule(epoch):
 
 def bulid_simple_net(width, height, RGB, ouput_classes, load_epoch = 0):
 
+    MODEL_W_PATH = SAVE_FOLDER + '/simple_nn_weights_'
+
     channel = 3 if RGB == True else 1
 
     dev = "/cpu:0" if N_GPU != 1 else "/gpu:0"
     with tf.device(dev):
 
         if load_epoch != 0:
-            model = load_model(BASE_MODEL_W_PATH + str(load_epoch) + '.h5')
+            model = load_model(MODEL_W_PATH + str(load_epoch) + '.h5')
         else:
             model = Sequential()
             model.add(Conv2D(32, kernel_size=(3, 3), input_shape=(width, height, channel), padding='same'))
@@ -169,7 +161,7 @@ def bulid_simple_net(width, height, RGB, ouput_classes, load_epoch = 0):
 
     model.summary()
 
-    return model
+    return model, MODEL_W_PATH
 
 
 
@@ -177,13 +169,16 @@ def bulid_keras_pretrained_net(net_name, width, height, RGB, ouput_classes, load
     ''' 
             Build NASNET which is able to save weights in one file
     '''
+
+    MODEL_W_PATH = SAVE_FOLDER + '/xception_weights_'
+
     channel = 3 if RGB == True else 1
 
     dev = "/cpu:0" if N_GPU != 1 else "/gpu:0"
     with tf.device(dev):
 
         if load_epoch != 0:
-            model = load_model(BASE_MODEL_W_PATH + str(load_epoch) + '.h5')
+            model = load_model(MODEL_W_PATH + str(load_epoch) + '.h5')
         else:
             # this could also be the output a different Keras model or layer
             input_tensor = Input(shape=(width, height, channel))  # this assumes K.image_data_format() == 'channels_last'
@@ -230,7 +225,7 @@ def bulid_keras_pretrained_net(net_name, width, height, RGB, ouput_classes, load
 
     model.summary()
 
-    return model
+    return model, MODEL_W_PATH
 
 
 
@@ -241,23 +236,54 @@ class FixedImageDataGenerator(ImageDataGenerator):
         return x
 
 
-def store_labels(gen, save_file=POS_LABEL_PICKLE):
+def retrieve_pos_and_dir(folder_name):
     '''
-    # https://medium.com/@vijayabhaskar96/tutorial-image-classification-with-keras-flow-from-directory-and-generators-95f75ebe5720
+        retrieve robot position(x,y) and relative direction to the docking station 
     '''
+
+    data = folder_name.split('_')
+    return [float(data[1]), float(data[0]), float(data[2])] # x , y, relative dir
+
+
+def store_labels(gen, save_file=None):
+    '''
+        Crate numpy label dictionaly and store it 
+    '''
+
+    if not os.path.exists(SAVE_FOLDER):
+        os.makedirs(SAVE_FOLDER)
+        print("Successfully created " + SAVE_FOLDER + ' directory')
+
+    if save_file == None:
+        save_file = SAVE_FOLDER + POS_LABEL_FILE
 
     labels = (gen.class_indices)
-    labels = dict((v,k) for k,v in labels.items())
+    label_np_dic = np.ndarray(shape=(len(labels), 3),dtype=float)
 
-    #test()
-    #test()ol=pickle.HIGHEST_PROTOCOL)
-    #test()
-    #test()
-def load_labels(load_file=POS_LABEL_PICKLE):
-    with open(load_file, 'rb') as handle:
-        return pickle.load(handle)
-    print('No '+load_file+' existed')
-    return None
+    for folder_name,index in labels.items():
+        data = retrieve_pos_and_dir(folder_name)
+        label_np_dic[index][0] = data[1]
+        label_np_dic[index][1] = data[0]
+        label_np_dic[index][2] = data[2]
+
+    np.save(save_file, label_np_dic)
+
+    print('saved labels as numpy array ', save_file)
+
+
+def load_labels(load_file=None):
+    ''' 
+        Load numpy label dictionary
+    '''
+
+    if not os.path.exists(SAVE_FOLDER):
+        os.makedirs(SAVE_FOLDER)
+        print("Successfully created " + SAVE_FOLDER + ' directory')
+
+    if load_file == None:
+        load_file = SAVE_FOLDER + POS_LABEL_FILE + '.npy'
+
+    return np.load(load_file)
     
 
 def load_dataset(width, height, train_sample_path, validataion_sample_path, batch_size, val_batch_size):
@@ -302,13 +328,13 @@ def train_model():
         os.makedirs(SAVE_FOLDER)
         print("Successfully created " + SAVE_FOLDER + ' directory')
 
-    if not os.path.exists(LOG_DIR):
-        os.makedirs(LOG_DIR)
-        print("Successfully created " + LOG_DIR + ' directory')
+    #if not os.path.exists(LOG_DIR):
+    #    os.makedirs(LOG_DIR)
+    #    print("Successfully created " + LOG_DIR + ' directory')
 
 
-    model = bulid_simple_net(IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
-    #model = bulid_keras_pretrained_net('Xception', IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
+    model, model_path = bulid_simple_net(IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
+    #model, model_path = bulid_keras_pretrained_net('Xception', IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
 
     train_dataset, val_dataset = load_dataset(IMG_WIDTH
                                             , IMG_HEIGHT
@@ -318,12 +344,11 @@ def train_model():
                                             , VAL_BATCH_SIZE)
 
     
-
     if SAVE_MODEL_GRAPH:
         plot_model(model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
         
     callbacks = [LearningRateScheduler(lr_schedule),
-                ModelCheckpoint(BASE_MODEL_W_PATH+'{epoch:d}_{val_loss:.2f}.h5'
+                ModelCheckpoint(model_path+'{epoch:d}_{val_loss:.2f}.h5'
                                 , monitor='val_loss'
                                 , verbose=0
                                 , save_best_only=False
@@ -344,15 +369,17 @@ def train_model():
         workers=WORK_THREAD)
 
 
-def test():
+def GetPosPredictor(kears_model_file, label_dick_pickle):
     '''
-        Test Somthing
+        return Position Prediction model and label dictionary
     '''
     pass
+    #model = load_model(kears_model_file)
+    #label_dic = load_labels(label_dick_pickle)
 
 
 
 if __name__ == '__main__':
-    #test()
     train_model()
+
 # end of file

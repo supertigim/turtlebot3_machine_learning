@@ -34,9 +34,9 @@ class DockingStation():
         self.station_position = Pose()
         self.station_name = STATION_NAME
 
-        self.sub_model = rospy.Subscriber('gazebo/model_states', ModelStates, self.__check_if_existed__)
-        self.sub_odom = rospy.Subscriber('odom', Odometry, self.__get_robot_odometry__)
-        self.sub_scan = rospy.Subscriber('scan', LaserScan, self.__get_scan__)
+        self.sub_model = rospy.Subscriber('gazebo/model_states', ModelStates, self.__check_if_existed__, queue_size=1)
+        self.sub_odom = rospy.Subscriber('odom', Odometry, self.__get_robot_odometry__, queue_size=1)
+        self.sub_scan = rospy.Subscriber('scan', LaserScan, self.__get_scan__, queue_size=1)
         self.is_existed = False
         self.index = 0
 
@@ -121,7 +121,6 @@ class DockingStation():
             else:
                 x = self.robot_x - self.station_position.position.x
                 y = self.station_position.position.y - self.robot_y
-
             x , y = y , x
 
         #return [x/MAX_DIS_TO_CONSIDER,y/MAX_DIS_TO_CONSIDER,self.compute_relative_angle()/pi]
