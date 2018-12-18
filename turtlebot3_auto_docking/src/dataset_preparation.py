@@ -24,10 +24,10 @@ SPLIT_RATIO             = 0.1           # 0.9 : Training | 0.1 : Testing
 
 
 # These valuse come after excuting the below function 
-N_TRAIN_SAMPLES         = 48050
-N_VAL_SAMPLES           = 5566
+N_TRAIN_SAMPLES         = 54213
+N_VAL_SAMPLES           = 6332
 
-CLASSES                 = 1553
+CLASSES                 = 1464
 
 ############################################
 # Functions 

@@ -33,6 +33,9 @@ class ModelEvaluation(AutoDockingDataGathering):
         self.model = load_model(MODEL_W_PATH)
         self.label_dic = load_labels()
 
+        self.correct = 0
+        self.wrong = 0
+
         
     def __callback_image_captured__(self, msg_img):
         ''' 
@@ -51,33 +54,38 @@ class ModelEvaluation(AutoDockingDataGathering):
 
         time.sleep(0.005)
 
+    def __is_triangle(self, a, b, c):
+        s, m, l = a, b, c 
+
+        if s > m: s, m = m, s
+        if m > l: m, l = l, m
+
+        if l < s+m: return True
+
+        return False
+
 
     def __go_ready_to_dock_position__(self, robot_pos):
-        print('__face_ready_to_dock_position__ started')
+        #print('__face_ready_to_dock_position__ started')
         self.__send_robot_speed__(0.0, 0.0)
         self.station.ros_sleep()
         clockwise = True if robot_pos[0] > 0 else False
         
         ready_point = 0.90
+
         a = round(math.sqrt(robot_pos[0]**2 + robot_pos[1]**2),2)
         b = round(math.sqrt(robot_pos[0]**2 + (robot_pos[1]-ready_point)**2),2)
-        #b = abs(robot_pos[0])
         c = ready_point # (0.0, 0.0) ~ (0.0, ready_point)
 
-        if a+b <= c:
-            if robot_pos[1] >= ready_point:
-                ang = 0.0
-            else:
-                ang = math.pi
+        if not self.__is_triangle(a,b,c):
+            ang = 0.0 if robot_pos[1] >= ready_point else math.pi
         else:
             ang = math.acos((a**2+b**2-c**2)/(2*a*b))
-            print('a:',a, ' b:', b, ' c:',c, ' angle:', ang)
 
         robot_ang = robot_pos[2]
         if clockwise: robot_ang *= -1.0
-        relative_angle = abs(ang + robot_ang)
-
-        print('angle:', ang, ' robot angle:', robot_pos[2], ' relative_angle:', relative_angle) 
+        relative_angle = abs(ang)# + robot_ang)  <========== Add this in real environment 
+        #print('angle:', ang, ' robot angle:', robot_pos[2], ' relative_angle:', relative_angle) 
 
         # Checking if our movement is CW or CCW
         angular_speed = 1.0
@@ -96,11 +104,11 @@ class ModelEvaluation(AutoDockingDataGathering):
         self.station.ros_sleep()
         self.__send_robot_speed__(0.0, 0.0)
         
-        # 02.Move to (0.0, 1.0)
-        print('02.Move to <
-        #BUGER_WHEEL_RADIU<0
-        t0 = self.station.<
-        distance_moved = 0<
+        # 02.Move to (0.0, ready_point)
+        print('02.Move to (0.0,'+str(ready_point)+')')
+
+        t0 = self.station.ros_time()
+        distance_moved = 0
         linear_speed = 0.25 # Ratio
         while(distance_moved < b):
             _ , lin_speed = self.__send_robot_speed__(ang=0.0, lin=linear_speed)
@@ -113,14 +121,11 @@ class ModelEvaluation(AutoDockingDataGathering):
         # 03.Face the docking station
         print('03.Face the docking station') 
 
-        if a+b <= c:
-            if robot_pos[1] >= ready_point:
-                ang = 0.0
-            else:
-                ang = math.pi
+        if not self.__is_triangle(a,b,c):
+            ang = 0.0 if robot_pos[1] < ready_point else math.pi
         else:
-            relative_angle = math.acos((b**2+c**2-a**2)/(2*b*c))
-        relative_angle = math.pi - relative_angle
+            ang = math.acos((b**2+c**2-a**2)/(2*b*c))
+        relative_angle = math.pi - ang # - robot_ang   <============= Add this in real environment 
         angular_speed *= -1.0
 
         t0 = self.station.ros_time()
@@ -141,7 +146,7 @@ class ModelEvaluation(AutoDockingDataGathering):
         self.images = []
         self.data = []
 
-        print('__face_ready_to_dock_position__ ended')
+        print('### Ready-to-Go Position is set ###')
 
 
     def __predict_pos__(self):
@@ -167,12 +172,16 @@ class ModelEvaluation(AutoDockingDataGathering):
 
         label = np.round(label,2)
         if prob > DETECTION_THRESHOLD_ACCURACY:
+            
             pred = self.label_dic[ind]
             pred[0], pred[1] = pred[1], pred[0]
+            if 0.1 > np.mean(np.sum(np.round(label,1)-pred)):   self.correct+=1
+            else:                                               self.wrong +=1
 
             pred_string = [str(a) for a in pred]
             label = [str(a) for a in label]
-            print('\nPredicted('+str(round(prob,2)*100)+'%):['+','.join(pred_string)+'] | Label:['+','.join(label)+']')
+            print('\nPredicted('+str(round(prob,2)*100)+'%):['+','.join(pred_string)+'] | Label:['+','.join(label)+'] | '
+                    + str(self.correct) + '/' + str(self.correct+self.wrong))
 
             self.__go_ready_to_dock_position__(pred)
 

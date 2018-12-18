@@ -71,24 +71,25 @@ Here are two ways you can do.
 
 ### > Triaining and Test dataset separation  
 
-There are two dataset required in order to train neural networks properly. Training dataset is just for training as guessed by its name, meanwhile test dataset is to evaluate the model to check if it is trained well. All dataset are placed in /data/train and /data/validation respectively.    
+There are two dataset required in order to train neural networks properly. Training dataset is just for training as guessed by its name, meanwhile test dataset is to evaluate the model to check if it is trained well. All dataset are placed in /data/train and /data/validation respectively. Dataset tested here are in the [link](https://cloud.tigiminsight.com/index.php/s/eNCU70mrTem6WjF)
 
     $(ros) python dataset_preparation.py
 
-And then, the model is ready to train.   
+And then, the model is ready to train. The trained model and the numpy array tested here are in the [link](https://cloud.tigiminsight.com/index.php/s/CaA4I9rUDklID2F)    
 
     $(ros) python pos_predictor_training.py
 
 
 ### > Evaluation  
 
-Training takes a little long time although it totally relies on hardware. After training, there are two files generated in /pos_predicition_model, one for labels called '**autodock_pos_labels.npy**', another one for position prediction named '**simple_nn_weights_XXX.h5**' where XXX is epochs. With current hyper parameters, the validation loss is almost 0.59 and validation accuracy is around 0.9 which shows almost 100% acurrate in choosing the right one out of 1553 classes.   
+Training takes a little long time although it totally relies on hardware. After training, there are two files generated in /pos_predicition_model, one for labels called '**autodock_pos_labels.npy**', another one for position prediction named '**simple_nn_weights_XXX.h5**' where XXX is epochs. With current hyper parameters, the validation loss is almost 0.59 and validation accuracy is around 0.9 which shows almost 100% acurrate in choosing the right one out of 1464 classes.   
 
 Please make sure that the gazebo simulation is still run. In addition to it, turtlebo3_teleop is needed to move robot.  
 
     # press 'n' if you want to change the position of docking station
     $(ros) python model_eval.py     
 
+Here is a [video](https://www.youtube.com/watch?v=olI7jhhOlT8). 
 
 ## 5.Move to (0.0 , 1.0)  
   
