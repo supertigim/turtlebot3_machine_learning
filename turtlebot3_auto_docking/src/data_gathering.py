@@ -18,7 +18,7 @@ from station_handler import DockingStation
 
 # Turtlebot3 Maximum Speeds
 MAX_LIN_VEL = 0.6
-MAX_ANG_VEL = 0.4
+MAX_ANG_VEL = 0.35
 
 # Maximum and Minimum Distance to be able to make dataset 
 MIN_DISTANCE = 0.3       # 0.3 meter
@@ -57,11 +57,17 @@ class AutoDockingDataGathering(object):
 			Convert ROS image to opencv image
 		'''
 		img = self.cvBridge.imgmsg_to_cv2(msg_img, "bgr8")
+		
 		if img_show:
 			cv2.imshow('turtlebot3 buger',img)
 			cv2.waitKey(10)
 
 		img = cv2.resize(img, (100, 100))
+
+		#if img_show:
+		#	cv2.imshow('turtlebot3 buger',img)
+		#	cv2.waitKey(10)
+
 		return img
 
 
@@ -135,11 +141,11 @@ class AutoDockingDataGathering(object):
 		self.__send_robot_speed__(0.0, vel)
 
 
-	def __random_move__(self):
+	def __random_move__(self, boost_ang=False):
 		ang = np.random.choice([1.0,-1.0])
 		ang = ang* np.random.rand()
 		vel = np.clip(np.random.rand(), 0.01, MAX_SPEED_RATIO)
-		self.__send_robot_speed__(ang, vel)
+		self.__send_robot_speed__(ang, vel, boost_ang=boost_ang)
 
 
 	def _save_path(self):
@@ -179,7 +185,8 @@ class AutoDockingDataGathering(object):
 			if abs(label[2] - round(label[2],1)) > 0.01: continue
 
 			label = np.round(label,1)
-			if label[2] == 0: label[2] = 0.0	# to remove -0.0
+			if label[2] == 0.0: label[2] = 0.0	# to remove -0.0
+			if label[0] == 0.0: label[0] = 0.0	# to remove -0.0
 
 			folder_path = self.path + str(label[1]) + "_" + str(label[0]) + "_" + str(label[2])
 			if not os.path.exists(folder_path):

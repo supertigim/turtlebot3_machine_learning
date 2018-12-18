@@ -36,15 +36,15 @@ SAVE_PERIOD             = 10
 IMG_WIDTH, IMG_HEIGHT   = 100, 100
 
 EPOCHS                  = 200
-BATCH_SIZE              = 32
+BATCH_SIZE              = 64
 VAL_BATCH_SIZE          = BATCH_SIZE//2
 
 TRANSFERED_MODEL_UPDATE = True
 
 LOAD_EPOCH              = 0 # must be less than epochs
-N_GPU                   = 1 # Number of GPU
+N_GPU                   = 2 # Number of GPU
 
-TOP_HIDDEN_L            = 1024
+TOP_HIDDEN_L            = 512#1024
 
 SAVE_MODEL_GRAPH        = False
 
@@ -88,13 +88,17 @@ def lr_schedule(epoch):
         lr (float32): learning rate
     """
     lr = 1e-3
-    #if epoch > 8:
-    #    lr = 1e-5
-    if epoch > 120:
-        lr = 5e-5
+    if epoch > 95:
+        lr = 1e-6
     elif epoch > 80:
+        lr = 5e-6
+    elif epoch > 65:
+        lr = 1e-5
+    elif epoch > 50:
+        lr = 5e-5
+    elif epoch > 35:
         lr = 1e-4
-    elif epoch > 40:
+    elif epoch > 20:
         lr = 5e-4
     print('Learning rate: ', lr)
     return lr
@@ -141,13 +145,13 @@ def bulid_simple_net(width, height, RGB, ouput_classes, load_epoch = 0):
             model.add(Dropout(0.40))
 
             model.add(Flatten())
-            model.add(Dense(512))
+            model.add(Dense(TOP_HIDDEN_L))
             model.add(BatchNormalization())
             model.add(Activation('relu'))
             model.add(Dropout(0.50))
 
             model.add(Dense(ouput_classes
-                                , kernel_regularizer=regularizers.l2(1e-3)
+                                , kernel_regularizer=regularizers.l2(1e-4)
                                 , activation='softmax'
                                 , name = 'predictions'))
 
@@ -170,7 +174,7 @@ def bulid_keras_pretrained_net(net_name, width, height, RGB, ouput_classes, load
             Build NASNET which is able to save weights in one file
     '''
 
-    MODEL_W_PATH = SAVE_FOLDER + '/xception_weights_'
+    MODEL_W_PATH = SAVE_FOLDER + '/mobilenetv2_weights_'
 
     channel = 3 if RGB == True else 1
 
@@ -184,18 +188,25 @@ def bulid_keras_pretrained_net(net_name, width, height, RGB, ouput_classes, load
             input_tensor = Input(shape=(width, height, channel))  # this assumes K.image_data_format() == 'channels_last'
 
             if net_name == 'Xception':
-                print("Import Pre-trained Xception Network")
+                MODEL_W_PATH = SAVE_FOLDER + '/xception_weights_'
                 base_model = applications.xception.Xception(input_tensor=input_tensor,weights='imagenet', include_top=False)
-            else:
+            elif net_name == 'MobileNet':
+                MODEL_W_PATH = SAVE_FOLDER + '/mobilenetv2_weights_'
+                base_model = applications.mobilenet_v2.MobileNetV2(input_tensor=input_tensor, weights='imagenet', include_top=False)
+            elif net_name == 'NasnetMoblie':
+                MODEL_W_PATH = SAVE_FOLDER + '/nasnetmobile_weights_'
                 base_model = applications.NASNetMobile(input_tensor=input_tensor,weights='imagenet', include_top=False)
+            else:
+                raise ValueError(net_name, ' is not supported!')
 
-            # add a global spatial average pooling layer
             x = base_model.output
 
-            x = Flatten()(x)
+            ## add a global spatial average pooling layer
+            x = GlobalAveragePooling2D()(x)
+            x = Dropout(0.5)(x)
+            #x = Flatten()(x)
+
             x = Dense(TOP_HIDDEN_L
-                    #, kernel_regularizer=regularizers.l2(0.)
-                    #, activity_regularizer=regularizers.l2(1e-4)
                     ,name='hidden_l')(x)
             x = BatchNormalization()(x)
             x = Activation('relu')(x)
@@ -203,7 +214,7 @@ def bulid_keras_pretrained_net(net_name, width, height, RGB, ouput_classes, load
 
             # and a logistic layer -- let's say we have 200 classes
             predictions = Dense(ouput_classes
-                                , kernel_regularizer=regularizers.l2(1e-3)
+                                , kernel_regularizer=regularizers.l2(1e-4)
                                 , activation='softmax'
                                 , name = 'predictions')(x)
 
@@ -293,7 +304,7 @@ def load_dataset(width, height, train_sample_path, validataion_sample_path, batc
     data_gen_args = dict(rescale=1. / 255,
                          #featurewise_center=True,
                          #featurewise_std_normalization=True,
-                         #zca_whitening=True,
+                         zca_whitening=True,
                          #fill_mode="nearest"
                          )
 
@@ -333,8 +344,8 @@ def train_model():
     #    print("Successfully created " + LOG_DIR + ' directory')
 
 
-    model, model_path = bulid_simple_net(IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
-    #model, model_path = bulid_keras_pretrained_net('Xception', IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
+    #model, model_path = bulid_simple_net(IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
+    model, model_path = bulid_keras_pretrained_net('MobileNet', IMG_WIDTH, IMG_HEIGHT, True, CLASSES, LOAD_EPOCH)
 
     train_dataset, val_dataset = load_dataset(IMG_WIDTH
                                             , IMG_HEIGHT
@@ -369,13 +380,6 @@ def train_model():
         workers=WORK_THREAD)
 
 
-def GetPosPredictor(kears_model_file, label_dick_pickle):
-    '''
-        return Position Prediction model and label dictionary
-    '''
-    pass
-    #model = load_model(kears_model_file)
-    #label_dic = load_labels(label_dick_pickle)
 
 
 

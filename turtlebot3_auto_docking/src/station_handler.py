@@ -47,6 +47,8 @@ class DockingStation():
         self.min_front_dis = float("inf")
         self.go_left = True
 
+        self.r = rospy.Rate(10)
+
         self.pub_model = rospy.Publisher('gazebo/set_model_state', ModelState, queue_size=1)
 
 
@@ -86,6 +88,13 @@ class DockingStation():
                 self.is_existed = True
                 return
 
+    def ros_time(self):
+        return rospy.Time.now().to_sec()
+
+
+    def ros_sleep(self):
+        self.r.sleep()
+        
 
     def compute_relative_angle(self):
         ''' 
@@ -174,6 +183,38 @@ class DockingStation():
             pose.orientation.w = q[3]
 
         return pose.orientation
+
+    def place_randomly(self):
+        ''' 
+            Move station aligning and facing robot exactly 
+        '''
+        MAX_DYNAMIC_POS = 0.7
+
+        self.is_up_or_bottom = True if random.random() > 0.5 else False 
+        bottom_or_right = 1.0 if random.random() > 0.5 else -1.0
+        top_or_left = 1.0 if random.random() > 0.5 else -1.0
+
+        x = STATION_POS * bottom_or_right
+        y = (random.random() % MAX_DYNAMIC_POS) * top_or_left
+        if not self.is_up_or_bottom: x,y = y,x
+
+        model = rospy.wait_for_message('gazebo/model_states', ModelStates)
+        for i in range(len(model.name)):
+            if model.name[i] == self.station_name:
+                mark = ModelState()
+                mark.model_name = model.name[i]
+                mark.pose = model.pose[i]
+
+                mark.pose.position.x, mark.pose.position.y = x, y
+
+                self.station_position.position.x = mark.pose.position.x
+                self.station_position.position.y = mark.pose.position.y
+                
+                mark.pose.orientation = self.__station_orientation__()
+                self.pub_model.publish(mark)
+
+                time.sleep(0.02)
+                break
 
 
     def align_and_face_robot(self):
