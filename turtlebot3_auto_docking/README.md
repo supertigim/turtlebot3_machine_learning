@@ -4,10 +4,13 @@ Autonomous Docking Module is implemented using deep learning technology.
 Idea behind this task is that 3 three steps are required to do. 
 1. Figure out where the turtlbebot3 is
     - Predict the position relative to the docking spot by using an image captured on top of the bot 
-2. Situate the bot one meter way from the spot and face it with exact angle. 
-    - Move the robot to (0, 1) pose, where pose of the spot is (0, 0) 
+2. Situate the bot appropriate distance from the station and face it. 
+    - Move the robot to (0, 1) pose, where pose of the docking station is (0, 0) 
 3. Try to reach the spot without angle problem 
     - Use reinforcement learning to get to the spot (Input: an image, Output: angular/linear velocities)
+
+First and second steps seem to be redundant when it comes to thinking about powerfullnes of RL at a glance. However, unlike expectation, only RL approach ends up failing to solve this taks, because of its patially obeserved environment problem.  
+
 
 ## 2.Prerequisites   
 
@@ -36,7 +39,7 @@ Idea behind this task is that 3 three steps are required to do.
 
 ## 3.Dataset Preparation for pose prediction    
 
-Posistion predictor model needs to be trained by dataset which is pairs of an image and its position label.
+Posistion prediction model needs to be trained by dataset which include pairs of images and those position/yaw label.
 Dataset are stored in 'dataset' folder where many folders named with position information are created and capture images belong to a dedicated folder automatically.  
   
 First open two terminals,  
@@ -67,43 +70,57 @@ Here are two ways you can do.
     - Material list can be found in /usr/share/gazebo-7/media/materials/scripts/gazebo.material  
     - Find available one by keyword "material Gazebo/"  
 
-## 4.Position Predictor Neural Network Training  
+## 4.Position Prediction Neural Network Training  
 
-### > Triaining and Test dataset separation  
+### > Building Dataset and Training ConvNet  
 
-There are two dataset required in order to train neural networks properly. Training dataset is just for training as guessed by its name, meanwhile test dataset is to evaluate the model to check if it is trained well. All dataset are placed in /data/train and /data/validation respectively. Dataset tested here are in the [link](https://cloud.tigiminsight.com/index.php/s/eNCU70mrTem6WjF)
+There are two dataset required in order to train neural networks properly. Training dataset is just for training as you can guess by its name, meanwhile test dataset is to evaluate the model to check if it is trained well. All dataset are placed in /data/train and /data/validation respectively. Dataset used here are in the [link](https://cloud.tigiminsight.com/index.php/s/eNCU70mrTem6WjF)
 
     $(ros) python dataset_preparation.py
 
-And then, the model is ready to train. The trained model and the numpy array tested here are in the [link](https://cloud.tigiminsight.com/index.php/s/CaA4I9rUDklID2F)    
+And then, the model is ready to train. The trained model and the numpy array of labels used here are in the [link](https://cloud.tigiminsight.com/index.php/s/CaA4I9rUDklID2F)    
 
     $(ros) python pos_predictor_training.py
 
 
 ### > Evaluation  
 
-Training takes a little long time although it totally relies on hardware. After training, there are two files generated in /pos_predicition_model, one for labels called '**autodock_pos_labels.npy**', another one for position prediction named '**simple_nn_weights_XXX.h5**' where XXX is epochs. With current hyper parameters, the validation loss is almost 0.59 and validation accuracy is around 0.9 which shows almost 100% acurrate in choosing the right one out of 1464 classes.   
+Training takes a little long time although it totally relies on hardware. After training, there are two files generated in /pos_predicition_model, one for labels called '**autodock_pos_labels.npy**', another one for position prediction named '**simple_nn_weights_XXX.h5**' where XXX is epochs. With current hyper parameters, the validation loss is almost 0.50 and validation accuracy is around 0.9 which shows almost 100% acurrate in choosing the right one out of 1464 classes.   
 
-Please make sure that the gazebo simulation is still run. In addition to it, turtlebo3_teleop is needed to move robot.  
+Please make sure that the Gazebo simulation is still run. Optionally, turtlebo3_teleop can be used to control manually, but not recommended.  
 
-    # press 'n' if you want to change the position of docking station
+    # press 'n' or 'r' if you want to change the position of docking station
     $(ros) python model_eval.py     
 
 Here is a [video](https://www.youtube.com/watch?v=olI7jhhOlT8). 
 
+    # able to evaluate the model with validata dataset. No Gazebo simulation is needed. 
+    $(ros) python model_eval.py --run dataset
+
+    # able to evaluate the model with real images taken by a real Raspberry Pi camera.  No Gazebo simulation is needed.
+    # put an image in the sample_images folder. 
+    $(ros) python model_eval.py --run images 
+
+![](./(0.3_0.4_-0.1)_training_images_5_real_image_1.png)  
+The above image show that the model is able to use in real environment, because the bottom-middle in the image is captured by iPhone camera and rescaled to (100x100). The accuracy is 50% which is not good, but it could be better if the model is trained with more dataset including real images.  
+
 ## 5.Move to (0.0 , 1.0)  
   
-Once the position predictor model is trained well, the bot can estimate where it is. Then it can move to 'ready-to-dock' location where the turtlebot3 faces the docking station with appropriate distance from it so that it can reach the  station successfully.  
+Once the position predictor model is trained well, the bot can estimate where it is. Then it can move to 'ready-to-dock' location where the turtlebot3 faces the docking station with appropriate distance from it so that it could reach the  station successfully.  
 
-This is a simple quest to solve only with legacy approach, because the bot already knows its position and heading.  
-
-    $(ros) python execute_auto_dock_approach.py --step "step2"  
+This is a simple quest to solve only using legacy approach, because the bot already knows its position and yaw. There is nothing to do it here, because this state is automatically tiriggered when the pos prediction model works properly.  
 
 
 ## 6.Reinforcement Learning based Motion Control  
 
-Although the robot is able to somehow predict where it is, the position is estimated value, not correct one. Therefore, reinforcement learning has been introduced so as to guide it to the docking very accurately from (0.0, 1.0).  
+Although the robot is anyhow able to predict where it is, the position is estimated value, not correct one. Therefore, reinforcement learning has been introduced so as to guide it to the docking station very accurately 
 
+The main RL algorithm is PPO, and a capture image takes in as input, the RL agent predicts both angular and lienar velocities to get to the target.
+
+### > Training RL   
+Like other deep learning technologies, training is the first step to do before using.   
+
+    # Please make sure that Gazebo simulation is running on the other terminal 
     $(ros) python rl_motion_control.py --mode "train"
 
 
