@@ -74,7 +74,7 @@ Here are two ways you can do.
 
 ### > Building Dataset and Training ConvNet  
 
-There are two dataset required in order to train neural networks properly. Training dataset is just for training as you can guess by its name, meanwhile test dataset is to evaluate the model to check if it is trained well. All dataset are placed in /data/train and /data/validation respectively. Dataset used here are in the [link](https://cloud.tigiminsight.com/index.php/s/eNCU70mrTem6WjF)
+The gathered dataset need to be divided into two. One group called ‘training dataset’ is for training meanwhile other one called ‘testing dataset’ is to evaluate the model to see if training is done well. All dataset are placed in /data/train and /data/validation respectively. Dataset used here are in the [link](https://cloud.tigiminsight.com/index.php/s/eNCU70mrTem6WjF)
 
     $(ros) python dataset_preparation.py
 
@@ -85,7 +85,7 @@ And then, the model is ready to train. The trained model and the numpy array of 
 
 ### > Evaluation  
 
-Training takes a little long time although it totally relies on hardware. After training, there are two files generated in /pos_predicition_model, one for labels called '**autodock_pos_labels.npy**', another one for position prediction named '**simple_nn_weights_XXX.h5**' where XXX is epochs. With current hyper parameters, the validation loss is almost 0.50 and validation accuracy is around 0.9 which shows almost 100% acurrate in choosing the right one out of 1464 classes.   
+Training takes a little long time although it totally relies on hardware. After training, there are two files generated in /pos_predicition_model, one for labels called '**autodock_pos_labels.npy**', other one for model weights named '**mobilenetv2_weights_XXX.h5**' where XXX is epochs. With current hyper parameters, the validation loss is almost 0.50 and validation accuracy is around 0.9 which shows almost 100% acurrate in choosing the right one out of 1464 classes.   
 
 Please make sure that the Gazebo simulation is still run. Optionally, turtlebo3_teleop can be used to control manually, but not recommended.  
 
@@ -106,7 +106,7 @@ The above image show that the model is able to use in real environment, because 
 
 ## 5.Move to (0.0 , 1.0)  
   
-Once the position predictor model is trained well, the bot can estimate where it is. Then it can move to 'ready-to-dock' location where the turtlebot3 faces the docking station with appropriate distance from it so that it could reach the  station successfully.  
+Once the position predictor is trained well, the bot can estimate where it is. Then it can move to 'ready-to-dock' location where the turtlebot3 faces the docking station with appropriate distance from it so that it could reach the  station successfully.  
 
 This is a simple quest to solve only using legacy approach, because the bot already knows its position and yaw. There is nothing to do it here, because this state is automatically tiriggered when the pos prediction model works properly.  
 
