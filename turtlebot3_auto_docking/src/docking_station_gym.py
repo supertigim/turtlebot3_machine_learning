@@ -76,6 +76,7 @@ class DockingStationGym(gym.Env):
 
         while self.done:
             time.sleep(0.01)
+        time.sleep(1)
             
 
     def step(self, action, reset=False):
@@ -157,6 +158,7 @@ class DockingStationGym(gym.Env):
                 time.sleep(0.05)
                 break
                 
+    
     def __compute_relative_angle__(self):
         ''' 
         return is 0.0 if the bot faces the station exactly 
@@ -178,16 +180,16 @@ class DockingStationGym(gym.Env):
         heading = abs(self.__compute_relative_angle__())
         is_exact_angle  = heading <= 0.008
 
-        if self.center_laser_dis <= COLLISON_DISTANCE and is_exact_angle:
-            print('Reach the docking station')
+        if self.center_laser_dis <= COLLISON_DISTANCE + 0.05 and is_exact_angle:
+            print('################ Reach the docking station ##################')
             return MAX_REWARD, True
 
         if self.done:
-            print('Crashed')
-            return -MAX_REWARD, self.done
+            print('>> Crashed')
+            return -MAX_REWARD, True
 
         reward_orientation = 1.0 if is_exact_angle else 0.0
-        print('reward_orientation', reward_orientation, heading)
+        print('reward_orientation', reward_orientation, heading, self.center_laser_dis)
         reward_distance = max(0.0, min(1.0, 1.2 - self.center_laser_dis))
         reward = reward_orientation*reward_distance
         return reward, False
@@ -219,6 +221,8 @@ class DockingStationGym(gym.Env):
         # https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
         self.robot_yaw = math.atan2(2*(q.z*q.w + q.x*q.y) , 1 - 2*(q.y**2 + q.z**2)) 
 
+        time.sleep(0.001)
+
     
     def __get_scan__(self, scan):
         ''' 
@@ -228,10 +232,12 @@ class DockingStationGym(gym.Env):
             - update minimum distance in front 
             - update which side has a closer obstacle
         '''
-        self.done = True if min(scan.ranges) <= COLLISON_DISTANCE else False
+        self.done = True if min(scan.ranges) < COLLISON_DISTANCE else False
 
         scan_length = len(scan.ranges)
         self.center_laser_dis = scan.ranges[scan_length//2]
+
+        time.sleep(0.001)
 
 
     def __callback_image_captured__(self, msg_img):

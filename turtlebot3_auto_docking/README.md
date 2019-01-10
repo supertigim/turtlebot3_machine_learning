@@ -127,3 +127,4 @@ Like other deep learning technologies, training is the first step to do before u
 
 ## Reference  
 [ROS Material List](http://wiki.ros.org/simulator_gazebo/Tutorials/ListOfMaterials) - deprecated  
+[How to conver urdf to sdf](http://answers.gazebosim.org/question/2282/convert-urdf-to-sdf-or-load-urdf/) 
